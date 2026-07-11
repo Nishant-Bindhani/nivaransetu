@@ -7,4 +7,154 @@ datasource db {
   provider = "postgresql"
 }
 
-// Models will be added in Module 2 — Database Design
+// Module 2 — Database Design
+
+enum Role {
+  CITIZEN
+  OFFICER
+  MANAGER
+  ADMIN
+}
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  password        String?
+  name            String
+  avatarUrl       String?
+  role            Role     @default(CITIZEN)
+  phone           String?
+  googleId        String?  @unique
+  isEmailVerified Boolean  @default(false)
+  isActive        Boolean  @default(true)
+
+  orgId        String?
+  organization Organization? @relation(fields: [orgId], references: [id])
+
+  deptId     String?
+  department Department? @relation(fields: [deptId], references: [id])
+
+  refreshTokens      RefreshToken[]
+  loginHistory       LoginHistory[]
+  sessions           Session[]
+  verificationTokens VerificationToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([deptId])
+  @@map("users")
+}
+
+enum VerificationTokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+model VerificationToken {
+  id        String                 @id @default(uuid())
+  tokenHash String                 @unique
+  userId    String
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      VerificationTokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime               @default(now())
+
+  @@index([userId, type])
+  @@map("verification_tokens")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceInfo String?
+  ipAddress  String?
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+  @@map("refresh_tokens")
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+}
+
+model LoginHistory {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  userAgent String?
+  status    LoginStatus
+  createdAt DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@map("login_history")
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId   String
+  deviceName String?
+  lastSeen   DateTime @default(now())
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Permission {
+  id     String @id @default(uuid())
+  role   Role
+  action String
+
+  @@unique([role, action])
+  @@map("permissions")
+}
+
+model Organization {
+  id       String @id @default(uuid())
+  name     String
+  slug     String @unique
+  settings Json   @default("{}")
+
+  departments Department[]
+  users       User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("organizations")
+}
+
+model Department {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  parentDeptId   String?
+  parentDept     Department?  @relation("DepartmentHierarchy", fields: [parentDeptId], references: [id])
+  subDepartments Department[] @relation("DepartmentHierarchy")
+
+  users User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId])
+  @@map("departments")
+}
