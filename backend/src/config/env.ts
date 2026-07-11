@@ -11,8 +11,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
 
   // Redis
-  UPSTASH_REDIS_URL: z.string().min(1),
-  UPSTASH_REDIS_TOKEN: z.string().min(1),
+  REDIS_URL: z.string().min(1),
 
   // JWT
   JWT_ACCESS_SECRET: z.string().min(32),
