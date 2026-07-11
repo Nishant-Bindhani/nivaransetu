@@ -4,6 +4,7 @@ import tsparser from '@typescript-eslint/parser'
 import prettier from 'eslint-config-prettier'
 
 export default [
+  { ignores: ['src/generated/**'] },
   js.configs.recommended,
   {
     files: ['src/**/*.ts'],
@@ -16,6 +17,7 @@ export default [
       globals: {
         process: 'readonly',
         console: 'readonly',
+        global: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
         Buffer: 'readonly',
