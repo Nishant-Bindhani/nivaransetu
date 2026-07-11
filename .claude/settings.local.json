@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --version)",
+      "Bash(npm --version)",
+      "Bash(dir \"d:\\\\Project\\\\nivaransetu\")",
+      "Bash(npm install *)"
+    ]
+  }
+}
