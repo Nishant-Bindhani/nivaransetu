@@ -1,9 +1,9 @@
 # Personal learning notes — never publish
 NOTES.md
 
-# Project planning docs (optional — remove if you want these public)
-# PROJECT_PLAN.md
-# PROJECT_STRUCTURE.md
+# Project planning docs — personal, never publish
+PROJECT_PLAN.md
+PROJECT_STRUCTURE.md
 
 # OS files
 .DS_Store
@@ -12,3 +12,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Claude Code local settings
+.claude/settings.local.json
