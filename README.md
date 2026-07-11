@@ -1,13 +1,15 @@
+<div align="center">
 
-
-# 🧭 NivaranSetu
+# NivaranSetu
 
 **AI-Powered Omnichannel Complaint & Ticket Management System**
 
 ![Status](https://img.shields.io/badge/status-In%20Progress-red)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 
+![Service desk illustration](readme/assets/service-desk.gif)
 
+</div>
 
 ---
 
