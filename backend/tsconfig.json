@@ -16,6 +16,7 @@
     "declaration": true,
     "paths": {
       "@config/*": ["./src/config/*"],
+      "@routes/*": ["./src/routes/*"],
       "@modules/*": ["./src/modules/*"],
       "@middleware/*": ["./src/middleware/*"],
       "@lib/*": ["./src/lib/*"],
