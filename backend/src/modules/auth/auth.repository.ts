@@ -18,3 +18,14 @@ export function consumeVerificationToken(tokenId: string, userId: string) {
     prisma.verificationToken.delete({ where: { id: tokenId } }),
   ])
 }
+
+export function createRefreshToken(data: {
+  userId: string
+  familyId: string
+  tokenHash: string
+  expiresAt: Date
+  deviceInfo?: string
+  ipAddress?: string
+}) {
+  return prisma.refreshToken.create({ data })
+}
