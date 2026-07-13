@@ -1,7 +1,15 @@
 import type { Request, Response } from 'express'
 import ms from 'ms'
 import { config } from '@config/env.js'
-import { registerUser, verifyEmail, loginUser, refreshTokens, logoutUser } from './auth.service.js'
+import {
+  registerUser,
+  verifyEmail,
+  loginUser,
+  refreshTokens,
+  logoutUser,
+  forgotPassword,
+  resetPassword,
+} from './auth.service.js'
 import { successResponse, successMessage } from '@utils/apiResponse.js'
 import { AppError } from '@utils/AppError.js'
 
@@ -49,4 +57,14 @@ export async function logout(req: Request, res: Response) {
 
   res.clearCookie('refreshToken')
   res.status(200).json(successMessage('Logged out successfully'))
+}
+
+export async function forgotPasswordHandler(req: Request, res: Response) {
+  await forgotPassword(req.body.email)
+  res.status(200).json(successMessage('If that email is registered, a reset link has been sent'))
+}
+
+export async function resetPasswordHandler(req: Request, res: Response) {
+  await resetPassword(req.body.token, req.body.password)
+  res.status(200).json(successMessage('Password reset successful, please log in again'))
 }

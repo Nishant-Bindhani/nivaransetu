@@ -13,6 +13,7 @@ import {
   createUser,
   findVerificationToken,
   consumeVerificationToken,
+  resetUserPassword,
   createRefreshToken,
   findRefreshToken,
   deleteRefreshToken,
@@ -166,4 +167,39 @@ export async function logoutUser(rawToken: string) {
   if (token) {
     await deleteRefreshToken(token.id)
   }
+}
+
+export async function forgotPassword(email: string) {
+  const user = await findUserByEmail(email)
+  if (!user) {
+    return
+  }
+
+  const rawToken = generateToken()
+  const tokenHash = hashToken(rawToken)
+
+  await prisma.verificationToken.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      type: 'PASSWORD_RESET',
+      expiresAt: new Date(Date.now() + ms(config.PASSWORD_RESET_EXPIRES_IN as ms.StringValue)),
+    },
+  })
+
+  // TODO: replace with real Resend email once configured
+  // eslint-disable-next-line no-console
+  console.log(`Password reset link: ${config.FRONTEND_URL}/reset-password?token=${rawToken}`)
+}
+
+export async function resetPassword(rawToken: string, newPassword: string) {
+  const tokenHash = hashToken(rawToken)
+  const token = await findVerificationToken(tokenHash, 'PASSWORD_RESET')
+
+  if (!token || token.expiresAt < new Date()) {
+    throw new AppError('Invalid or expired reset link', 400)
+  }
+
+  const hashedPassword = await hashPassword(newPassword)
+  await resetUserPassword(token.id, token.userId, hashedPassword)
 }

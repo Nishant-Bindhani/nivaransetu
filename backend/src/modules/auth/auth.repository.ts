@@ -23,6 +23,14 @@ export function consumeVerificationToken(tokenId: string, userId: string) {
   ])
 }
 
+export function resetUserPassword(tokenId: string, userId: string, hashedPassword: string) {
+  return prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { password: hashedPassword } }),
+    prisma.verificationToken.delete({ where: { id: tokenId } }),
+    prisma.refreshToken.deleteMany({ where: { userId } }),
+  ])
+}
+
 export function createRefreshToken(data: {
   userId: string
   familyId: string
