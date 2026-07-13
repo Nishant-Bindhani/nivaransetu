@@ -158,3 +158,12 @@ export async function refreshTokens(rawToken: string) {
     refreshToken: rawNewRefreshToken,
   }
 }
+
+export async function logoutUser(rawToken: string) {
+  const tokenHash = hashToken(rawToken)
+  const token = await findRefreshToken(tokenHash)
+
+  if (token) {
+    await deleteRefreshToken(token.id)
+  }
+}

@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 import ms from 'ms'
 import { config } from '@config/env.js'
-import { registerUser, verifyEmail, loginUser, refreshTokens } from './auth.service.js'
+import { registerUser, verifyEmail, loginUser, refreshTokens, logoutUser } from './auth.service.js'
 import { successResponse, successMessage } from '@utils/apiResponse.js'
 import { AppError } from '@utils/AppError.js'
 
@@ -39,4 +39,14 @@ export async function refresh(req: Request, res: Response) {
   const { accessToken, refreshToken } = await refreshTokens(rawToken)
   setRefreshTokenCookie(res, refreshToken)
   res.status(200).json(successResponse({ accessToken }, 'Token refreshed'))
+}
+
+export async function logout(req: Request, res: Response) {
+  const rawToken = req.cookies.refreshToken
+  if (rawToken) {
+    await logoutUser(rawToken)
+  }
+
+  res.clearCookie('refreshToken')
+  res.status(200).json(successMessage('Logged out successfully'))
 }
