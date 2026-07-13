@@ -4,6 +4,10 @@ export function findUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } })
 }
 
+export function findUserById(id: string) {
+  return prisma.user.findUnique({ where: { id } })
+}
+
 export function createUser(data: { email: string; password: string; name: string }) {
   return prisma.user.create({ data })
 }
@@ -28,4 +32,16 @@ export function createRefreshToken(data: {
   ipAddress?: string
 }) {
   return prisma.refreshToken.create({ data })
+}
+
+export function findRefreshToken(tokenHash: string) {
+  return prisma.refreshToken.findUnique({ where: { tokenHash } })
+}
+
+export function deleteRefreshToken(id: string) {
+  return prisma.refreshToken.delete({ where: { id } })
+}
+
+export function deleteTokenFamily(familyId: string) {
+  return prisma.refreshToken.deleteMany({ where: { familyId } })
 }
