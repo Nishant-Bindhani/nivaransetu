@@ -3,7 +3,12 @@ import { config } from '@config/env.js'
 import { hashPassword } from '@utils/password.js'
 import { generateToken, hashToken } from '@utils/hash.js'
 import { AppError } from '@utils/AppError.js'
-import { findUserByEmail, createUser } from './auth.repository.js'
+import {
+  findUserByEmail,
+  createUser,
+  findVerificationToken,
+  consumeVerificationToken,
+} from './auth.repository.js'
 import type { RegisterInput } from './auth.types.js'
 
 export async function registerUser(input: RegisterInput) {
@@ -42,4 +47,15 @@ export async function registerUser(input: RegisterInput) {
     role: user.role,
     isEmailVerified: user.isEmailVerified,
   }
+}
+
+export async function verifyEmail(rawToken: string) {
+  const tokenHash = hashToken(rawToken)
+  const token = await findVerificationToken(tokenHash, 'EMAIL_VERIFY')
+
+  if (!token || token.expiresAt < new Date()) {
+    throw new AppError('Invalid or expired verification link', 400)
+  }
+
+  await consumeVerificationToken(token.id, token.userId)
 }

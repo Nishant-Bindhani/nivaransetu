@@ -59,7 +59,6 @@ model VerificationToken {
   user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      VerificationTokenType
   expiresAt DateTime
-  usedAt    DateTime?
   createdAt DateTime               @default(now())
 
   @@index([userId, type])
@@ -67,17 +66,18 @@ model VerificationToken {
 }
 
 model RefreshToken {
-  id         String    @id @default(uuid())
-  tokenHash  String    @unique
+  id         String   @id @default(uuid())
+  tokenHash  String   @unique
   userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId   String
   deviceInfo String?
   ipAddress  String?
   expiresAt  DateTime
-  usedAt     DateTime?
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime @default(now())
 
   @@index([userId, expiresAt])
+  @@index([familyId])
   @@map("refresh_tokens")
 }
 
