@@ -11,6 +11,9 @@ import {
   findUserByEmail,
   findUserById,
   createUser,
+  findUserByGoogleId,
+  linkGoogleAccount,
+  createGoogleUser,
   findVerificationToken,
   consumeVerificationToken,
   resetUserPassword,
@@ -19,10 +22,32 @@ import {
   deleteRefreshToken,
   deleteTokenFamily,
 } from './auth.repository.js'
+import { exchangeCodeForToken, fetchGoogleProfile } from './auth.google.js'
 import type { RegisterInput, LoginInput } from './auth.types.js'
 
 const REFRESH_TOKEN_EXPIRY_MS = () => ms(config.JWT_REFRESH_EXPIRES_IN as ms.StringValue)
 const REUSE_DETECTION_TTL_SECONDS = () => ms(config.REUSE_DETECTION_TTL as ms.StringValue) / 1000
+
+async function issueSession(user: { id: string; role: string; orgId: string | null; deptId: string | null }) {
+  const accessToken = signAccessToken({
+    userId: user.id,
+    role: user.role,
+    ...(user.orgId ? { orgId: user.orgId } : {}),
+    ...(user.deptId ? { deptId: user.deptId } : {}),
+  })
+
+  const familyId = randomUUID()
+  const rawRefreshToken = generateToken()
+
+  await createRefreshToken({
+    userId: user.id,
+    familyId,
+    tokenHash: hashToken(rawRefreshToken),
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS()),
+  })
+
+  return { accessToken, refreshToken: rawRefreshToken }
+}
 
 export async function registerUser(input: RegisterInput) {
   const existing = await findUserByEmail(input.email)
@@ -88,26 +113,11 @@ export async function loginUser(input: LoginInput) {
     throw new AppError('Please verify your email before logging in', 403)
   }
 
-  const accessToken = signAccessToken({
-    userId: user.id,
-    role: user.role,
-    orgId: user.orgId ?? undefined,
-    deptId: user.deptId ?? undefined,
-  })
-
-  const familyId = randomUUID()
-  const rawRefreshToken = generateToken()
-
-  await createRefreshToken({
-    userId: user.id,
-    familyId,
-    tokenHash: hashToken(rawRefreshToken),
-    expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS()),
-  })
+  const { accessToken, refreshToken } = await issueSession(user)
 
   return {
     accessToken,
-    refreshToken: rawRefreshToken,
+    refreshToken,
     user: {
       id: user.id,
       email: user.email,
@@ -150,8 +160,8 @@ export async function refreshTokens(rawToken: string) {
   const accessToken = signAccessToken({
     userId: user.id,
     role: user.role,
-    orgId: user.orgId ?? undefined,
-    deptId: user.deptId ?? undefined,
+    ...(user.orgId ? { orgId: user.orgId } : {}),
+    ...(user.deptId ? { deptId: user.deptId } : {}),
   })
 
   return {
@@ -202,4 +212,40 @@ export async function resetPassword(rawToken: string, newPassword: string) {
 
   const hashedPassword = await hashPassword(newPassword)
   await resetUserPassword(token.id, token.userId, hashedPassword)
+}
+
+export async function googleAuth(code: string) {
+  const accessToken = await exchangeCodeForToken(code)
+  const profile = await fetchGoogleProfile(accessToken)
+
+  if (!profile.email_verified) {
+    throw new AppError('Google account email is not verified', 403)
+  }
+
+  let user = await findUserByGoogleId(profile.sub)
+
+  if (!user) {
+    const existingByEmail = await findUserByEmail(profile.email)
+    if (existingByEmail) {
+      user = await linkGoogleAccount(existingByEmail.id, profile.sub)
+    } else {
+      user = await createGoogleUser({
+        email: profile.email,
+        name: profile.name,
+        googleId: profile.sub,
+      })
+    }
+  }
+
+  const session = await issueSession(user)
+
+  return {
+    ...session,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    },
+  }
 }

@@ -25,6 +25,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_CALLBACK_URL: z.string().optional(),
+  GOOGLE_OAUTH_STATE_TTL: z.string().default('5m'),
 
   // Resend (email)
   RESEND_API_KEY: z.string().optional(),

@@ -12,6 +12,18 @@ export function createUser(data: { email: string; password: string; name: string
   return prisma.user.create({ data })
 }
 
+export function findUserByGoogleId(googleId: string) {
+  return prisma.user.findUnique({ where: { googleId } })
+}
+
+export function linkGoogleAccount(userId: string, googleId: string) {
+  return prisma.user.update({ where: { id: userId }, data: { googleId } })
+}
+
+export function createGoogleUser(data: { email: string; name: string; googleId: string }) {
+  return prisma.user.create({ data: { ...data, isEmailVerified: true } })
+}
+
 export function findVerificationToken(tokenHash: string, type: 'EMAIL_VERIFY' | 'PASSWORD_RESET') {
   return prisma.verificationToken.findUnique({ where: { tokenHash, type } })
 }

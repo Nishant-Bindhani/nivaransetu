@@ -7,6 +7,8 @@ import {
   logout,
   forgotPasswordHandler,
   resetPasswordHandler,
+  googleRedirect,
+  googleCallback,
 } from './auth.controller.js'
 import { validate } from '@middleware/validate.middleware.js'
 import {
@@ -26,5 +28,7 @@ router.post('/refresh-token', refresh)
 router.post('/logout', logout)
 router.post('/forgot-password', validate(forgotPasswordSchema), forgotPasswordHandler)
 router.post('/reset-password', validate(resetPasswordSchema), resetPasswordHandler)
+router.get('/google', googleRedirect)
+router.get('/google/callback', googleCallback)
 
 export default router

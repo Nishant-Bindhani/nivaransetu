@@ -1,4 +1,6 @@
 import type { Request, Response } from 'express'
+import { randomUUID } from 'crypto'
+import { URL } from 'node:url'
 import ms from 'ms'
 import { config } from '@config/env.js'
 import {
@@ -9,6 +11,7 @@ import {
   logoutUser,
   forgotPassword,
   resetPassword,
+  googleAuth,
 } from './auth.service.js'
 import { successResponse, successMessage } from '@utils/apiResponse.js'
 import { AppError } from '@utils/AppError.js'
@@ -67,4 +70,40 @@ export async function forgotPasswordHandler(req: Request, res: Response) {
 export async function resetPasswordHandler(req: Request, res: Response) {
   await resetPassword(req.body.token, req.body.password)
   res.status(200).json(successMessage('Password reset successful, please log in again'))
+}
+
+export function googleRedirect(req: Request, res: Response) {
+  const state = randomUUID()
+
+  res.cookie('oauth_state', state, {
+    httpOnly: true,
+    secure: config.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: ms(config.GOOGLE_OAUTH_STATE_TTL as ms.StringValue),
+  })
+
+  const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
+  googleAuthUrl.searchParams.set('client_id', config.GOOGLE_CLIENT_ID ?? '')
+  googleAuthUrl.searchParams.set('redirect_uri', config.GOOGLE_CALLBACK_URL ?? '')
+  googleAuthUrl.searchParams.set('response_type', 'code')
+  googleAuthUrl.searchParams.set('scope', 'email profile')
+  googleAuthUrl.searchParams.set('state', state)
+
+  res.redirect(googleAuthUrl.toString())
+}
+
+export async function googleCallback(req: Request, res: Response) {
+  const { code, state } = req.query
+  const storedState = req.cookies.oauth_state
+
+  res.clearCookie('oauth_state')
+
+  if (!code || !state || state !== storedState) {
+    throw new AppError('Invalid OAuth state, please try signing in again', 400)
+  }
+
+  const { accessToken, refreshToken } = await googleAuth(String(code))
+  setRefreshTokenCookie(res, refreshToken)
+
+  res.redirect(`${config.FRONTEND_URL}/oauth-callback?token=${accessToken}`)
 }
