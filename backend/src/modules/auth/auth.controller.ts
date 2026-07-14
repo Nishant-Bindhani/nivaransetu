@@ -12,6 +12,9 @@ import {
   forgotPassword,
   resetPassword,
   googleAuth,
+  listSessions,
+  revokeSession,
+  revokeAllSessions,
 } from './auth.service.js'
 import { successResponse, successMessage } from '@utils/apiResponse.js'
 import { AppError } from '@utils/AppError.js'
@@ -36,7 +39,10 @@ export async function verifyEmailHandler(req: Request, res: Response) {
 }
 
 export async function login(req: Request, res: Response) {
-  const { accessToken, refreshToken, user } = await loginUser(req.body)
+  const { accessToken, refreshToken, user } = await loginUser(req.body, {
+    deviceInfo: req.headers['user-agent'],
+    ipAddress: req.ip,
+  })
   setRefreshTokenCookie(res, refreshToken)
   res.status(200).json(successResponse({ accessToken, user }, 'Login successful'))
 }
@@ -102,8 +108,38 @@ export async function googleCallback(req: Request, res: Response) {
     throw new AppError('Invalid OAuth state, please try signing in again', 400)
   }
 
-  const { accessToken, refreshToken } = await googleAuth(String(code))
+  const { accessToken, refreshToken } = await googleAuth(String(code), {
+    deviceInfo: req.headers['user-agent'],
+    ipAddress: req.ip,
+  })
   setRefreshTokenCookie(res, refreshToken)
 
   res.redirect(`${config.FRONTEND_URL}/oauth-callback?token=${accessToken}`)
+}
+
+export async function listSessionsHandler(req: Request, res: Response) {
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401)
+  }
+
+  const sessions = await listSessions(req.user.userId)
+  res.status(200).json(successResponse(sessions, 'Active sessions'))
+}
+
+export async function revokeSessionHandler(req: Request, res: Response) {
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401)
+  }
+
+  await revokeSession(req.user.userId, String(req.params.id))
+  res.status(200).json(successMessage('Session revoked'))
+}
+
+export async function revokeAllSessionsHandler(req: Request, res: Response) {
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401)
+  }
+
+  await revokeAllSessions(req.user.userId)
+  res.status(200).json(successMessage('All sessions revoked'))
 }

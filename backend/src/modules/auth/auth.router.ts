@@ -9,8 +9,12 @@ import {
   resetPasswordHandler,
   googleRedirect,
   googleCallback,
+  listSessionsHandler,
+  revokeSessionHandler,
+  revokeAllSessionsHandler,
 } from './auth.controller.js'
 import { validate } from '@middleware/validate.middleware.js'
+import { requireAuth } from '@middleware/authenticate.middleware.js'
 import {
   registerSchema,
   verifyEmailSchema,
@@ -30,5 +34,8 @@ router.post('/forgot-password', validate(forgotPasswordSchema), forgotPasswordHa
 router.post('/reset-password', validate(resetPasswordSchema), resetPasswordHandler)
 router.get('/google', googleRedirect)
 router.get('/google/callback', googleCallback)
+router.get('/sessions', requireAuth, listSessionsHandler)
+router.delete('/sessions/:id', requireAuth, revokeSessionHandler)
+router.delete('/sessions', requireAuth, revokeAllSessionsHandler)
 
 export default router

@@ -65,3 +65,14 @@ export function deleteRefreshToken(id: string) {
 export function deleteTokenFamily(familyId: string) {
   return prisma.refreshToken.deleteMany({ where: { familyId } })
 }
+
+export function findRefreshTokensByUserId(userId: string) {
+  return prisma.refreshToken.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+export function deleteRefreshTokenForUser(id: string, userId: string) {
+  return prisma.refreshToken.deleteMany({ where: { id, userId } })
+}

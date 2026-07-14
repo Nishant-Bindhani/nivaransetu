@@ -22,6 +22,8 @@ import {
   findRefreshToken,
   deleteRefreshToken,
   deleteTokenFamily,
+  findRefreshTokensByUserId,
+  deleteRefreshTokenForUser,
 } from './auth.repository.js'
 import { exchangeCodeForToken, fetchGoogleProfile } from './auth.google.js'
 import type { RegisterInput, LoginInput } from './auth.types.js'
@@ -29,7 +31,10 @@ import type { RegisterInput, LoginInput } from './auth.types.js'
 const REFRESH_TOKEN_EXPIRY_MS = () => ms(config.JWT_REFRESH_EXPIRES_IN as ms.StringValue)
 const REUSE_DETECTION_TTL_SECONDS = () => ms(config.REUSE_DETECTION_TTL as ms.StringValue) / 1000
 
-async function issueSession(user: { id: string; role: string; orgId: string | null; deptId: string | null }) {
+async function issueSession(
+  user: { id: string; role: string; orgId: string | null; deptId: string | null },
+  device?: { deviceInfo?: string; ipAddress?: string },
+) {
   const accessToken = signAccessToken({
     userId: user.id,
     role: user.role,
@@ -45,6 +50,8 @@ async function issueSession(user: { id: string; role: string; orgId: string | nu
     familyId,
     tokenHash: hashToken(rawRefreshToken),
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS()),
+    ...(device?.deviceInfo ? { deviceInfo: device.deviceInfo } : {}),
+    ...(device?.ipAddress ? { ipAddress: device.ipAddress } : {}),
   })
 
   return { accessToken, refreshToken: rawRefreshToken }
@@ -97,7 +104,10 @@ export async function verifyEmail(rawToken: string) {
   await consumeVerificationToken(token.id, token.userId)
 }
 
-export async function loginUser(input: LoginInput) {
+export async function loginUser(
+  input: LoginInput,
+  device?: { deviceInfo?: string; ipAddress?: string },
+) {
   const user = await findUserByEmail(input.email)
   if (!user || !user.password) {
     throw new AppError('Invalid email or password', 401)
@@ -112,7 +122,7 @@ export async function loginUser(input: LoginInput) {
     throw new AppError('Please verify your email before logging in', 403)
   }
 
-  const { accessToken, refreshToken } = await issueSession(user)
+  const { accessToken, refreshToken } = await issueSession(user, device)
 
   return {
     accessToken,
@@ -211,7 +221,10 @@ export async function resetPassword(rawToken: string, newPassword: string) {
   await resetUserPassword(token.id, token.userId, hashedPassword)
 }
 
-export async function googleAuth(code: string) {
+export async function googleAuth(
+  code: string,
+  device?: { deviceInfo?: string; ipAddress?: string },
+) {
   const accessToken = await exchangeCodeForToken(code)
   const profile = await fetchGoogleProfile(accessToken)
 
@@ -234,7 +247,7 @@ export async function googleAuth(code: string) {
     }
   }
 
-  const session = await issueSession(user)
+  const session = await issueSession(user, device)
 
   return {
     ...session,
@@ -245,4 +258,28 @@ export async function googleAuth(code: string) {
       role: user.role,
     },
   }
+}
+
+export async function listSessions(userId: string) {
+  const sessions = await findRefreshTokensByUserId(userId)
+
+  return sessions.map((session) => ({
+    id: session.id,
+    deviceInfo: session.deviceInfo,
+    ipAddress: session.ipAddress,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+  }))
+}
+
+export async function revokeSession(userId: string, sessionId: string) {
+  const result = await deleteRefreshTokenForUser(sessionId, userId)
+
+  if (result.count === 0) {
+    throw new AppError('Session not found', 404)
+  }
+}
+
+export async function revokeAllSessions(userId: string) {
+  await prisma.refreshToken.deleteMany({ where: { userId } })
 }
