@@ -6,6 +6,7 @@ import { redis } from '@config/redis.js'
 import { hashPassword, verifyPassword } from '@utils/password.js'
 import { generateToken, hashToken } from '@utils/hash.js'
 import { signAccessToken } from '@utils/jwt.js'
+import { sendVerificationEmail, sendPasswordResetEmail } from '@utils/email.js'
 import { AppError } from '@utils/AppError.js'
 import {
   findUserByEmail,
@@ -74,9 +75,7 @@ export async function registerUser(input: RegisterInput) {
     },
   })
 
-  // TODO: replace with real Resend email once configured
-  // eslint-disable-next-line no-console
-  console.log(`Verification link: ${config.FRONTEND_URL}/verify?token=${rawToken}`)
+  await sendVerificationEmail(user.email, `${config.FRONTEND_URL}/verify?token=${rawToken}`)
 
   return {
     id: user.id,
@@ -197,9 +196,7 @@ export async function forgotPassword(email: string) {
     },
   })
 
-  // TODO: replace with real Resend email once configured
-  // eslint-disable-next-line no-console
-  console.log(`Password reset link: ${config.FRONTEND_URL}/reset-password?token=${rawToken}`)
+  await sendPasswordResetEmail(user.email, `${config.FRONTEND_URL}/reset-password?token=${rawToken}`)
 }
 
 export async function resetPassword(rawToken: string, newPassword: string) {
