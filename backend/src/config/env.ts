@@ -79,6 +79,10 @@ const envSchema = z.object({
 
   // Render
   RENDER_BACKEND_URL: z.string().optional(),
+
+  // Rate limiting
+  AUTH_RATE_LIMIT_MAX: z.string().default('10').transform(Number),
+  API_RATE_LIMIT_MAX: z.string().default('100').transform(Number),
 })
 
 const parsed = envSchema.safeParse(process.env)

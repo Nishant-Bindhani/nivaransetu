@@ -15,6 +15,7 @@ import {
 } from './auth.controller.js'
 import { validate } from '@middleware/validate.middleware.js'
 import { requireAuth } from '@middleware/authenticate.middleware.js'
+import { authRateLimit } from '@middleware/rateLimit.middleware.js'
 import {
   registerSchema,
   verifyEmailSchema,
@@ -24,6 +25,8 @@ import {
 } from './auth.validation.js'
 
 const router = Router()
+
+router.use(authRateLimit)
 
 router.post('/register', validate(registerSchema), register)
 router.post('/verify-email', validate(verifyEmailSchema), verifyEmailHandler)

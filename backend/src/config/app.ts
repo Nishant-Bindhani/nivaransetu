@@ -4,6 +4,7 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import { config } from '@config/env.js'
 import { errorHandler } from '@middleware/errorHandler.middleware.js'
+import { apiRateLimit } from '@middleware/rateLimit.middleware.js'
 import routes from '@routes/routes.js'
 
 export const app = express()
@@ -17,6 +18,7 @@ app.use(
 )
 app.use(cookieParser())
 app.use(express.json())
+app.use(apiRateLimit)
 
 app.use('/api', routes)
 
